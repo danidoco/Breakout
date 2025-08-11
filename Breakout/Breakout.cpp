@@ -147,6 +147,7 @@ int main(int argc, char** args)
 		}
 
 		// out
+		// TODO: improve behavior when out
 		if (!ballWaiting && ballCenter.y > windowSize.height + ballRadius) 
 		{
 			ballMotion = { 0, 0 };
@@ -171,11 +172,12 @@ int main(int argc, char** args)
 
 
 		// ball-paddle collision check
+		// TODO: Check collision on all sides of the paddle
 		if ((ballCenter.y + ballRadius > paddlePos.y) && (paddlePos.x < ballCenter.x) && (ballCenter.x < paddlePos.x + paddleSize.width))
 		{
 			ballMotion.dy *= -1;
 		}
-
+		
 		ballCenter.x += ballMotion.dx;
 		ballCenter.y += ballMotion.dy;
 
