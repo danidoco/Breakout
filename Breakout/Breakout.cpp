@@ -1,10 +1,21 @@
 #include <SDL2/SDL.h>
 #include <iostream>
+#include <vector>
+#include <chrono>
+#include <cmath>
+
+#undef ENABLE_BALL_TRACE
 
 struct Position
 {
 	int x;
 	int y;
+};
+
+struct Motion
+{
+	float dx;
+	float dy;
 };
 
 struct Size
@@ -13,14 +24,57 @@ struct Size
 	int height;
 };
 
+static void DrawCircle(SDL_Renderer* renderer, Position center, int radius)
+{
+	const int diameter = (radius * 2);
+
+	int x = (radius - 1);
+	int y = 0;
+	int tx = 1;
+	int ty = 1;
+	int error = (tx - diameter);
+
+	while (x >= y)
+	{
+		SDL_RenderDrawLine(renderer, center.x - x, center.y - y, center.x + x, center.y - y);
+		SDL_RenderDrawLine(renderer, center.x - x, center.y + y, center.x + x, center.y + y);
+		SDL_RenderDrawLine(renderer, center.x - y, center.y - x, center.x + y, center.y - x);
+		SDL_RenderDrawLine(renderer, center.x - y, center.y + x, center.x + y, center.y + x);
+
+		if (error <= 0)
+		{
+			++y;
+			error += ty;
+			ty += 2;
+		}
+
+		if (error > 0)
+		{
+			--x;
+			tx += 2;
+			error += (tx - diameter);
+		}
+	}
+}
+
 int main(int argc, char** args)
 {
 	const Size windowSize = { 800, 600 };
 
-	Size paddleSize = { 200, 20 };
+	Size paddleSize = { 200, 10 };
 	Position paddlePos = { (windowSize.width - paddleSize.width) / 2, (windowSize.height - 20) - paddleSize.height };
-	int paddleVelocity = 10;
-	SDL_Rect paddleRect{};
+	int paddleVelocity = 15;
+	SDL_Rect paddleShape{};
+
+	int ballRadius = 10;
+	Position ballCenter = { (windowSize.width - paddleSize.width) / 2 + paddleSize.width / 2, (windowSize.height - 20) - paddleSize.height - ballRadius};
+	float ballVelocity = 7;
+	Motion ballMotion = { -ballVelocity, -ballVelocity };
+	using clock = std::chrono::steady_clock;
+	std::chrono::time_point<clock> ballOutTime;
+	bool ballWaiting = false;
+	auto respawnDelay = std::chrono::milliseconds(2000);
+	std::vector<Position> trace;
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 	{
@@ -55,7 +109,7 @@ int main(int argc, char** args)
 			}
 		}
 
-		const Uint8* keyboardState = SDL_GetKeyboardState(nullptr);
+		const unsigned char* keyboardState = SDL_GetKeyboardState(nullptr);
 		
 		if (keyboardState[SDL_SCANCODE_LEFT])
 		{
@@ -76,14 +130,85 @@ int main(int argc, char** args)
 		{
 			paddlePos.x = windowSize.width - paddleSize.width;
 		}
-		
+
+		if (ballCenter.x - ballRadius < 0)
+		{
+			ballMotion.dx *= -1;
+		}
+
+		if (ballCenter.y - ballRadius < 0)
+		{
+			ballMotion.dy *= -1;
+		}
+
+		if (ballCenter.x + ballRadius > windowSize.width)
+		{
+			ballMotion.dx *= -1;
+		}
+
+		// out
+		if (!ballWaiting && ballCenter.y > windowSize.height + ballRadius) 
+		{
+			ballMotion = { 0, 0 };
+			ballWaiting = true;
+			ballOutTime = clock::now();
+		}
+
+		if (ballWaiting) 
+		{
+			if (clock::now() - ballOutTime >= respawnDelay) 
+			{
+#ifdef ENABLE_BALL_TRACE
+				trace.clear();
+#endif
+				ballCenter = { paddlePos.x + paddleSize.width / 2,
+							   (windowSize.height - 20) - paddleSize.height - ballRadius };
+				ballMotion = { -ballVelocity, -ballVelocity };
+
+				ballWaiting = false;
+			}
+		}
+
+
+		// ball-paddle collision check
+		if ((ballCenter.y + ballRadius > paddlePos.y) && (paddlePos.x < ballCenter.x) && (ballCenter.x < paddlePos.x + paddleSize.width))
+		{
+			ballMotion.dy *= -1;
+		}
+
+		ballCenter.x += ballMotion.dx;
+		ballCenter.y += ballMotion.dy;
+
 		SDL_SetRenderDrawColor(renderer, 26, 16, 46, 255);
 		SDL_RenderClear(renderer);
 
-		paddleRect = { paddlePos.x, paddlePos.y, paddleSize.width, paddleSize.height };
+		paddleShape = { paddlePos.x, paddlePos.y, paddleSize.width, paddleSize.height };
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-		SDL_RenderFillRect(renderer, &paddleRect);
+		SDL_RenderFillRect(renderer, &paddleShape);
 
+		SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+		DrawCircle(renderer, ballCenter, ballRadius);
+
+		SDL_SetRenderDrawColor(renderer, 255, 16, 46, 255);
+
+#ifdef ENABLE_BALL_TRACE
+		trace.push_back(ballCenter);
+
+		for (size_t i = 1; i < trace.size(); i++)
+		{
+			Position prevDot = trace.at(i - 1);
+			Position currentDot = trace.at(i);
+
+			SDL_SetRenderDrawColor(renderer, 255, 16, 46, 255);
+			SDL_RenderDrawLine(renderer, prevDot.x, prevDot.y, currentDot.x, currentDot.y);
+		}
+
+		if (trace.size() > 50)
+		{
+			trace.erase(trace.begin());
+		}
+		
+#endif
 		SDL_RenderPresent(renderer);
 	}
 	
