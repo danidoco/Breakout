@@ -74,7 +74,10 @@ int main(int argc, char** args)
 	std::chrono::time_point<clock> ballOutTime;
 	bool ballWaiting = false;
 	auto respawnDelay = std::chrono::milliseconds(2000);
+	float hitFactor;
+#ifdef ENABLE_BALL_TRACE
 	std::vector<Position> trace;
+#endif
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 	{
@@ -179,9 +182,14 @@ int main(int argc, char** args)
 			(paddlePos.x <= ballCenter.x) && 
 			(ballCenter.x <= paddlePos.x + paddleSize.width))
 		{
+			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f);
+			std::cout << hitFactor << std::endl;
+			
 			ballMotion.dy *= -1;
+			
 			ballCenter.y = paddlePos.y - ballRadius - 1;
 		}
+
 
 		ballCenter.x += ballMotion.dx;
 		ballCenter.y += ballMotion.dy;
