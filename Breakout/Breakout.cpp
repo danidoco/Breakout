@@ -67,7 +67,7 @@ int main(int argc, char** args)
 	SDL_Rect paddleShape{};
 
 	int ballRadius = 10;
-	Position ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius};
+	Position ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius * 2};
 	float ballVelocity = 7;
 	Motion ballMotion = { -ballVelocity, -ballVelocity };
 	using clock = std::chrono::steady_clock;
@@ -165,8 +165,7 @@ int main(int argc, char** args)
 #ifdef ENABLE_BALL_TRACE
 				trace.clear();
 #endif
-				ballCenter = { paddlePos.x + paddleSize.width / 2,
-							   (windowSize.height - 20) - paddleSize.height - ballRadius };
+				ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius * 2 };
 				ballMotion = { -ballVelocity, -ballVelocity };
 
 				ballWaiting = false;
