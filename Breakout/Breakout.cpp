@@ -178,10 +178,10 @@ int main(int argc, char** args)
 		if (
 			(ballCenter.y + ballRadius >= paddlePos.y) && 
 			(ballCenter.y < paddlePos.y) && 
-			(paddlePos.x <= ballCenter.x) && 
-			(ballCenter.x <= paddlePos.x + paddleSize.width))
+			(paddlePos.x - ballRadius <= ballCenter.x) && 
+			(ballCenter.x <= paddlePos.x + paddleSize.width + ballRadius))
 		{
-			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f);
+			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f + ballRadius);
 			std::cout << hitFactor << std::endl;
 			
 			ballMotion.dy *= -1;
