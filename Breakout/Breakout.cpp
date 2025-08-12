@@ -36,10 +36,10 @@ static void DrawCircle(SDL_Renderer* renderer, Position center, int radius)
 
 	while (x >= y)
 	{
-		SDL_RenderDrawLine(renderer, center.x - x, center.y - y, center.x + x, center.y - y);
-		SDL_RenderDrawLine(renderer, center.x - x, center.y + y, center.x + x, center.y + y);
-		SDL_RenderDrawLine(renderer, center.x - y, center.y - x, center.x + y, center.y - x);
-		SDL_RenderDrawLine(renderer, center.x - y, center.y + x, center.x + y, center.y + x);
+		SDL_RenderDrawLine(renderer, (int)center.x - x, (int)center.y - y, (int)center.x + x, (int)center.y - y);
+		SDL_RenderDrawLine(renderer, (int)center.x - x, (int)center.y + y, (int)center.x + x, (int)center.y + y);
+		SDL_RenderDrawLine(renderer, (int)center.x - y, (int)center.y - x, (int)center.x + y, (int)center.y - x);
+		SDL_RenderDrawLine(renderer, (int)center.x - y, (int)center.y + x, (int)center.x + y, (int)center.y + x);
 
 		if (error <= 0)
 		{
@@ -62,7 +62,7 @@ int main(int argc, char** args)
 	const Size windowSize = { 800, 600 };
 
 	Size paddleSize = { 200, 10 };
-	Position paddlePos = { (windowSize.width - paddleSize.width) / 2, (windowSize.height - 40) - paddleSize.height };
+	Position paddlePos = { (windowSize.width - paddleSize.width) / 2.0f, (float)((windowSize.height - 40) - paddleSize.height)};
 	int paddleVelocity = 15;
 	SDL_Rect paddleShape{};
 
@@ -77,7 +77,7 @@ int main(int argc, char** args)
 	float hitFactor;
 	float bounceAngleAcute;
 	float bounceAngle;
-	float bounceAngleBoundary = M_PI / 18.0f;
+	float bounceAngleBoundary = (float)M_PI / 18.0f;
 
 #ifdef ENABLE_BALL_TRACE
 	std::vector<Position> trace;
@@ -135,7 +135,7 @@ int main(int argc, char** args)
 
 		if (paddlePos.x > windowSize.width - paddleSize.width)
 		{
-			paddlePos.x = windowSize.width - paddleSize.width;
+			paddlePos.x = (float)(windowSize.width - paddleSize.width);
 		}
 
 		if (ballCenter.x - ballRadius < 0)
@@ -187,10 +187,10 @@ int main(int argc, char** args)
 		{
 			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f + ballRadius);
 			
-			bounceAngleAcute = bounceAngleBoundary + (M_PI / 2.0f - bounceAngleBoundary) * (1.0f - std::abs(hitFactor));
+			bounceAngleAcute = bounceAngleBoundary + ((float)M_PI / 2.0f - bounceAngleBoundary) * (1.0f - std::abs(hitFactor));
 			if (hitFactor < 0)
 			{
-				bounceAngle = M_PI - bounceAngleAcute;
+				bounceAngle = (float)M_PI - bounceAngleAcute;
 			}
 			else
 			{
