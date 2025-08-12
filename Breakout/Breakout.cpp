@@ -62,12 +62,12 @@ int main(int argc, char** args)
 	const Size windowSize = { 800, 600 };
 
 	Size paddleSize = { 200, 10 };
-	Position paddlePos = { (windowSize.width - paddleSize.width) / 2, (windowSize.height - 20) - paddleSize.height };
+	Position paddlePos = { (windowSize.width - paddleSize.width) / 2, (windowSize.height - 40) - paddleSize.height };
 	int paddleVelocity = 15;
 	SDL_Rect paddleShape{};
 
 	int ballRadius = 10;
-	Position ballCenter = { (windowSize.width - paddleSize.width) / 2 + paddleSize.width / 2, (windowSize.height - 20) - paddleSize.height - ballRadius};
+	Position ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius};
 	float ballVelocity = 7;
 	Motion ballMotion = { -ballVelocity, -ballVelocity };
 	using clock = std::chrono::steady_clock;
@@ -173,11 +173,16 @@ int main(int argc, char** args)
 
 		// ball-paddle collision check
 		// TODO: Check collision on all sides of the paddle
-		if ((ballCenter.y + ballRadius > paddlePos.y) && (paddlePos.x < ballCenter.x) && (ballCenter.x < paddlePos.x + paddleSize.width))
+		if (
+			(ballCenter.y + ballRadius >= paddlePos.y) && 
+			(ballCenter.y < paddlePos.y) && 
+			(paddlePos.x <= ballCenter.x) && 
+			(ballCenter.x <= paddlePos.x + paddleSize.width))
 		{
 			ballMotion.dy *= -1;
+			ballCenter.y = paddlePos.y - ballRadius - 1;
 		}
-		
+
 		ballCenter.x += ballMotion.dx;
 		ballCenter.y += ballMotion.dy;
 
