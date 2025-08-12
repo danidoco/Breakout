@@ -8,8 +8,8 @@
 
 struct Position
 {
-	int x;
-	int y;
+	float x;
+	float y;
 };
 
 struct Motion
@@ -75,6 +75,10 @@ int main(int argc, char** args)
 	bool ballWaiting = false;
 	auto respawnDelay = std::chrono::milliseconds(2000);
 	float hitFactor;
+	float bounceAngleAcute;
+	float bounceAngle;
+	float bounceAngleBoundary = M_PI / 18.0f;
+
 #ifdef ENABLE_BALL_TRACE
 	std::vector<Position> trace;
 #endif
@@ -182,9 +186,19 @@ int main(int argc, char** args)
 			(ballCenter.x <= paddlePos.x + paddleSize.width + ballRadius))
 		{
 			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f + ballRadius);
-			std::cout << hitFactor << std::endl;
 			
-			ballMotion.dy *= -1;
+			bounceAngleAcute = bounceAngleBoundary + (M_PI / 2.0f - bounceAngleBoundary) * (1.0f - std::abs(hitFactor));
+			if (hitFactor < 0)
+			{
+				bounceAngle = M_PI - bounceAngleAcute;
+			}
+			else
+			{
+				bounceAngle = bounceAngleAcute;
+			}
+
+			ballMotion.dx = ballVelocity * std::cos(bounceAngle);
+			ballMotion.dy = ballVelocity * -std::sin(bounceAngle);
 			
 			ballCenter.y = paddlePos.y - ballRadius - 1;
 		}
@@ -196,7 +210,7 @@ int main(int argc, char** args)
 		SDL_SetRenderDrawColor(renderer, 26, 16, 46, 255);
 		SDL_RenderClear(renderer);
 
-		paddleShape = { paddlePos.x, paddlePos.y, paddleSize.width, paddleSize.height };
+		paddleShape = { (int)paddlePos.x, (int)paddlePos.y, paddleSize.width, paddleSize.height };
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 		SDL_RenderFillRect(renderer, &paddleShape);
 
