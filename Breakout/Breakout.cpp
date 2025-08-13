@@ -93,8 +93,8 @@ int main(int argc, char** args)
 	float bounceAngleAcute;
 	float bounceAngle;
 	float bounceAngleBoundary = (float)M_PI / 18.0f;
-#pragma endregion
 
+#pragma endregion
 #pragma region init
 	// init SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -119,8 +119,6 @@ int main(int argc, char** args)
 	}
 #pragma endregion
 
-#pragma region loop
-
 	// game loop
 	while (running)
 	{
@@ -136,49 +134,47 @@ int main(int argc, char** args)
 		const unsigned char* keyboardState = SDL_GetKeyboardState(nullptr);
 #pragma endregion
 #pragma region update
+		// paddle movement
 		if (keyboardState[SDL_SCANCODE_LEFT])
 		{
 			paddlePos.x -= paddleVelocity;
 		}
-
 		if (keyboardState[SDL_SCANCODE_RIGHT])
 		{
 			paddlePos.x += paddleVelocity;
 		}
 
+		// paddle boundary (leftwall, rightwall)
 		if (paddlePos.x < 0)
 		{
 			paddlePos.x = 0;
 		}
-
 		if (paddlePos.x > windowSize.width - paddleSize.width)
 		{
 			paddlePos.x = (float)(windowSize.width - paddleSize.width);
 		}
 
+		// ball bounce (leftwall, rightwall, topwall)
 		if (ballCenter.x - ballRadius < 0)
 		{
 			ballMotion.dx *= -1;
 		}
-
+		if (ballCenter.x + ballRadius > windowSize.width)
+		{
+			ballMotion.dx *= -1;
+		}
 		if (ballCenter.y - ballRadius < 0)
 		{
 			ballMotion.dy *= -1;
 		}
 
-		if (ballCenter.x + ballRadius > windowSize.width)
-		{
-			ballMotion.dx *= -1;
-		}
-
-		// ball out
+		// ball out (bottomwall)
 		if (!ballWaiting && ballCenter.y > windowSize.height + ballRadius) 
 		{
 			ballMotion = { 0, 0 };
 			ballWaiting = true;
 			ballOutTime = clock::now();
 		}
-
 		if (ballWaiting) 
 		{
 			if (clock::now() - ballOutTime >= respawnDelay) 
@@ -190,10 +186,10 @@ int main(int argc, char** args)
 			}
 		}
 
-		// collision detection between ball and paddle
-		if ((ballCenter.y + ballRadius >= paddlePos.y) && 
-			(ballCenter.y < paddlePos.y) && 
-			(paddlePos.x - ballRadius <= ballCenter.x) && 
+		// paddle-ball collision detection
+		if ((ballCenter.y + ballRadius >= paddlePos.y) &&
+			(ballCenter.y < paddlePos.y) &&
+			(paddlePos.x - ballRadius <= ballCenter.x) &&
 			(ballCenter.x <= paddlePos.x + paddleSize.width + ballRadius))
 		{
 			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f + ballRadius);
@@ -214,7 +210,7 @@ int main(int argc, char** args)
 			ballCenter.y = paddlePos.y - ballRadius - 1;
 		}
 
-
+		// move ball
 		ballCenter.x += ballMotion.dx;
 		ballCenter.y += ballMotion.dy;
 #pragma endregion
@@ -232,10 +228,8 @@ int main(int argc, char** args)
 		SDL_SetRenderDrawColor(renderer, 255, 16, 46, 255);
 
 		SDL_RenderPresent(renderer);
+#pragma endregion
 	}
-#pragma endregion
-
-#pragma endregion
 
 #pragma region free
 	SDL_DestroyRenderer(renderer);
