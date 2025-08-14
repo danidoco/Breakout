@@ -193,7 +193,7 @@ int main(int argc, char** args)
 		{0, 0, 255},
 		{127, 0, 255}
 	};
-	Brick bricks[200];
+	Brick bricks[200]{};
 	for (int i = 0; i < sizeof(bricks) / sizeof(Brick); i++)
 	{
 		Brick& brick = bricks[i];
@@ -206,7 +206,6 @@ int main(int argc, char** args)
 
 		int row = i / 20;
 		brick.color = rainbow[row];
-
 		brick.broken = false;
 	}
 #pragma endregion
@@ -299,6 +298,20 @@ int main(int argc, char** args)
 			{
 				ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius * 2 };
 				ballMotion = { -ballVelocity, -ballVelocity };
+
+				bool allBroken = true;
+				for (Brick& brick : bricks)
+				{
+					allBroken = allBroken && brick.broken;
+				}
+
+				if (allBroken)
+				{
+					for (Brick& brick : bricks)
+					{
+						brick.broken = false;
+					}
+				}
 
 				ballWaiting = false;
 			}
