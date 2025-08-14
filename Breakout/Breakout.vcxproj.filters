@@ -28,4 +28,9 @@
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\screenshot.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

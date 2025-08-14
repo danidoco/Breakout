@@ -161,6 +161,9 @@
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\screenshot.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
