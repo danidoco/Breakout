@@ -165,7 +165,7 @@ int main(int argc, char** args)
 	SDL_Rect paddleShape{};
 
 	// ball
-	int ballRadius = 8;
+	int ballRadius = 10;
 	Position ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius * 2};
 	float ballVelocity = 7;
 	Motion ballMotion = { -ballVelocity, -ballVelocity };
