@@ -6,7 +6,6 @@
 #include <cmath>
 #include <cstdlib>
 
-#pragma region types
 struct Position
 {
 	float x;
@@ -48,8 +47,6 @@ enum class CollisionEdge
 	Right, 
 };
 
-#pragma endregion
-#pragma region functions
 static void DrawCircle(SDL_Renderer* renderer, Position center, int radius)
 {
 	const int diameter = (radius * 2);
@@ -143,11 +140,8 @@ static CollisionEdge GetCircleRectIntersectionEdge(Position circleCenter, int ci
 	}
 }
 
-#pragma endregion
-
 int main(int argc, char** args)
 {
-#pragma region decl
 	// window
 	const Size windowSize = { 800, 600 };
 	SDL_Window* window = nullptr;
@@ -209,8 +203,7 @@ int main(int argc, char** args)
 		brick.color = rainbow[row];
 		brick.broken = false;
 	}
-#pragma endregion
-#pragma region init
+
 	// init SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 	{
@@ -232,12 +225,10 @@ int main(int argc, char** args)
 		std::cout << "Error creating renderer: " << SDL_GetError() << std::endl;
 		return 1;
 	}
-#pragma endregion
 
 	// game loop
 	while (running)
 	{
-#pragma region input
 		while (SDL_PollEvent(&e))
 		{
 			if (e.type == SDL_QUIT)
@@ -247,8 +238,7 @@ int main(int argc, char** args)
 		}
 
 		const unsigned char* keyboardState = SDL_GetKeyboardState(nullptr);
-#pragma endregion
-#pragma region update
+
 		// paddle movement
 		if (keyboardState[SDL_SCANCODE_LEFT])
 		{
@@ -375,8 +365,7 @@ int main(int argc, char** args)
 		// move ball
 		ballCenter.x += ballMotion.dx;
 		ballCenter.y += ballMotion.dy;
-#pragma endregion
-#pragma region render
+
 		SDL_SetRenderDrawColor(renderer, 26, 16, 46, 255);
 		SDL_RenderClear(renderer);
 
@@ -399,14 +388,11 @@ int main(int argc, char** args)
 		SDL_SetRenderDrawColor(renderer, 255, 16, 46, 255);
 
 		SDL_RenderPresent(renderer);
-#pragma endregion
 	}
 
-#pragma region free
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-#pragma endregion
 
 	return 0;
 }
