@@ -175,10 +175,7 @@ int main(int argc, char** args)
 		}
 
 		// paddle-ball collision detection
-		if ((ball.shape.c.y + ball.shape.r >= paddle.shape.p.y) &&
-			(ball.shape.c.y < paddle.shape.p.y) &&
-			(paddle.shape.p.x - ball.shape.r <= ball.shape.c.x) &&
-			(ball.shape.c.x <= paddle.shape.p.x + paddle.shape.s.w + ball.shape.r))
+		if (IsCircleRectColliding(ball.shape, paddle.shape))
 		{
 			hitFactor = (ball.shape.c.x - (paddle.shape.p.x + paddle.shape.s.w / 2.0f)) / (paddle.shape.s.w / 2.0f + ball.shape.r);
 			bounceAngleAcute = bounceAngleBoundary + ((float)M_PI / 2.0f - bounceAngleBoundary) * (1.0f - std::abs(hitFactor));
@@ -266,7 +263,6 @@ int main(int argc, char** args)
 		}
 
 		SDL_SetRenderDrawColor(renderer, 255, 16, 46, 255);
-
 		SDL_RenderPresent(renderer);
 	}
 
