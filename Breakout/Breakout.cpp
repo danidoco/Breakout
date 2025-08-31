@@ -5,171 +5,48 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
-
-struct Position
-{
-	float x;
-	float y;
-};
-
-struct Motion
-{
-	float dx;
-	float dy;
-};
-
-struct Size
-{
-	int width;
-	int height;
-};
-
-struct Color
-{
-	int r;
-	int g;
-	int b;
-};
-
-struct Brick
-{
-	SDL_Rect rect;
-	Color color;
-	bool broken;
-};
-
-enum class CollisionEdge
-{
-	None = 0,
-	Top, 
-	Bottom, 
-	Left, 
-	Right, 
-};
-
-static void DrawCircle(SDL_Renderer* renderer, Position center, int radius)
-{
-	const int diameter = (radius * 2);
-
-	int x = (radius - 1);
-	int y = 0;
-	int tx = 1;
-	int ty = 1;
-	int error = (tx - diameter);
-
-	while (x >= y)
-	{
-		SDL_RenderDrawLine(renderer, (int)center.x - x, (int)center.y - y, (int)center.x + x, (int)center.y - y);
-		SDL_RenderDrawLine(renderer, (int)center.x - x, (int)center.y + y, (int)center.x + x, (int)center.y + y);
-		SDL_RenderDrawLine(renderer, (int)center.x - y, (int)center.y - x, (int)center.x + y, (int)center.y - x);
-		SDL_RenderDrawLine(renderer, (int)center.x - y, (int)center.y + x, (int)center.x + y, (int)center.y + x);
-
-		if (error <= 0)
-		{
-			++y;
-			error += ty;
-			ty += 2;
-		}
-
-		if (error > 0)
-		{
-			--x;
-			tx += 2;
-			error += (tx - diameter);
-		}
-	}
-}
-
-static bool IsCircleRectIntersecting(Position circleCenter, int circleRadius, const SDL_Rect& rect)
-{
-	Position closestPoint{};
-	closestPoint.x = std::max((float)rect.x, std::min(circleCenter.x, (float)(rect.x + rect.w)));
-	closestPoint.y = std::max((float)rect.y, std::min(circleCenter.y, (float)(rect.y + rect.h)));
-
-	float dx = circleCenter.x - closestPoint.x;
-	float dy = circleCenter.y - closestPoint.y;
-
-	return (dx * dx + dy * dy) <= (circleRadius * circleRadius);
-}
-
-static CollisionEdge GetCircleRectIntersectionEdge(Position circleCenter, int circleRadius, const SDL_Rect& rect)
-{
-	Position closestPoint{};
-	closestPoint.x = std::max((float)rect.x, std::min(circleCenter.x, (float)rect.x + rect.w));
-	closestPoint.y = std::max((float)rect.y, std::min(circleCenter.y, (float)rect.y + rect.h));
-
-	float dx = circleCenter.x - closestPoint.x;
-	float dy = circleCenter.y - closestPoint.y;
-
-	if (dx * dx + dy * dy > circleRadius * circleRadius)
-	{
-		return CollisionEdge::None;
-	}
-
-	Position rectCenter{};
-	rectCenter.x = rect.x + rect.w / 2.0f;
-	rectCenter.y = rect.y + rect.h / 2.0f;
-
-	float dxCenter = circleCenter.x - rectCenter.x;
-	float dyCenter = circleCenter.y - rectCenter.y;
-
-	float verticalFactor = (rect.w / 2.0f + circleRadius) * dyCenter;
-	float horizontalFactor = (rect.h / 2.0f + circleRadius) * dxCenter;
-
-	if (verticalFactor > horizontalFactor)
-	{
-		if (verticalFactor > -horizontalFactor)
-		{
-			return CollisionEdge::Bottom;
-		}
-		else
-		{
-			return CollisionEdge::Left;
-		}
-	}
-	else
-	{
-		if (verticalFactor > -horizontalFactor)
-		{
-			return CollisionEdge::Right;
-		}
-		else
-		{
-			return CollisionEdge::Top;
-		}
-	}
-}
+#include "Collision.h"
+#include "Object.h"
+#include "Property.h"
+#include "Shape.h"
 
 int main(int argc, char** args)
 {
-	// window
 	const Size windowSize = { 800, 600 };
-	SDL_Window* window = nullptr;
+	SDL_Window* window = SDL_CreateWindow(
+		"Breakout", 
+		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
+		windowSize.w, windowSize.h, 
+		SDL_WINDOW_SHOWN);
+	if (!window)
+	{
+		std::cout << "Error creating window: " << SDL_GetError() << std::endl;
+		return 1;
+	}
 
-	// renderer
-	SDL_Renderer* renderer = nullptr;
+	SDL_Renderer* renderer = SDL_CreateRenderer(
+		window, 
+		-1, 
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (!renderer)
+	{
+		std::cout << "Error creating renderer: " << SDL_GetError() << std::endl;
+		return 1;
+	}
 
-	// for game loop
-	SDL_Event e{};
-	bool running = true;
+	Paddle paddle{};
+	paddle.shape.s = { 150, 10 };
+	paddle.shape.p = { (windowSize.w - paddle.shape.s.w) / 2.0f, (float)(windowSize.h - paddle.shape.s.h - 40) };
+	paddle.velocity = 15;
 
-	// paddle
-	Size paddleSize = { 150, 10 };
-	Position paddlePos = { (windowSize.width - paddleSize.width) / 2.0f, (float)((windowSize.height - 40) - paddleSize.height)};
-	int paddleVelocity = 15;
-	SDL_Rect paddleShape{};
+	Ball ball{};
+	ball.shape.r = 10;
+	ball.shape.c = { paddle.shape.p.x + paddle.shape.s.w / 2.0f, paddle.shape.p.y - ball.shape.r * 2 };
+	ball.velocity = 7;
+	ball.motion = { -ball.velocity, -ball.velocity };
+	ball.shouldRespawn = false;
+	ball.respawnDelay = std::chrono::milliseconds(2000);
 
-	// ball
-	int ballRadius = 10;
-	Position ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius * 2};
-	float ballVelocity = 7;
-	Motion ballMotion = { -ballVelocity, -ballVelocity };
-	using clock = std::chrono::steady_clock;
-	std::chrono::time_point<clock> ballOutTime;
-	bool ballWaiting = false;
-	auto respawnDelay = std::chrono::milliseconds(2000);
-	
-	// for paddle-ball hit processing
 	float hitFactor;
 	float bounceAngleAcute;
 	float bounceAngle;
@@ -188,16 +65,17 @@ int main(int argc, char** args)
 		{0, 0, 255},
 		{127, 0, 255}
 	};
+
 	Brick bricks[200]{};
 	for (int i = 0; i < sizeof(bricks) / sizeof(Brick); i++)
 	{
 		Brick& brick = bricks[i];
 
-		brick.rect.w = 40;
-		brick.rect.h = 15;
+		brick.shape.s.w = 40;
+		brick.shape.s.h = 15;
 
-		brick.rect.x = (800 - brick.rect.w * 20) / 2 + brick.rect.w * (i % 20);
-		brick.rect.y = 100 + brick.rect.h * (i / 20);
+		brick.shape.p.x = static_cast<float>((800 - brick.shape.s.w * 20) / 2 + brick.shape.s.w * (i % 20));
+		brick.shape.p.y = static_cast<float>(100 + brick.shape.s.h * (i / 20));
 
 		int row = i / 20;
 		brick.color = rainbow[row];
@@ -211,22 +89,10 @@ int main(int argc, char** args)
 		return 1;
 	}
 
-	// create window and renderer
-	window = SDL_CreateWindow("Breakout", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowSize.width, windowSize.height, SDL_WINDOW_SHOWN);
-	if (!window)
-	{
-		std::cout << "Error creating window: " << SDL_GetError() << std::endl;
-		return 1;
-	}
-
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (!renderer)
-	{
-		std::cout << "Error creating renderer: " << SDL_GetError() << std::endl;
-		return 1;
-	}
-
 	// game loop
+	SDL_Event e{};
+	bool running = true;
+
 	while (running)
 	{
 		while (SDL_PollEvent(&e))
@@ -242,53 +108,53 @@ int main(int argc, char** args)
 		// paddle movement
 		if (keyboardState[SDL_SCANCODE_LEFT])
 		{
-			paddlePos.x -= paddleVelocity;
+			paddle.shape.p.x -= paddle.velocity;
 		}
 		if (keyboardState[SDL_SCANCODE_RIGHT])
 		{
-			paddlePos.x += paddleVelocity;
+			paddle.shape.p.x += paddle.velocity;
 		}
 
 		// paddle boundary (leftwall, rightwall)
-		if (paddlePos.x < 0)
+		if (paddle.shape.p.x < 0)
 		{
-			paddlePos.x = 0;
+			paddle.shape.p.x = 0;
 		}
-		if (paddlePos.x > windowSize.width - paddleSize.width)
+		if (paddle.shape.p.x > windowSize.w - paddle.shape.s.w)
 		{
-			paddlePos.x = (float)(windowSize.width - paddleSize.width);
+			paddle.shape.p.x = (float)(windowSize.w - paddle.shape.s.w);
 		}
 
 		// ball bounce (leftwall, rightwall, topwall)
-		if (ballCenter.x - ballRadius < 0)
+		if (ball.shape.c.x - ball.shape.r < 0)
 		{
-			ballCenter.x = (float)ballRadius;
-			ballMotion.dx *= -1;
+			ball.shape.c.x = (float)ball.shape.r;
+			ball.motion.dx *= -1;
 		}
-		if (ballCenter.x + ballRadius > windowSize.width)
+		if (ball.shape.c.x + ball.shape.r > windowSize.w)
 		{
-			ballCenter.x = (float)(windowSize.width - ballRadius);
-			ballMotion.dx *= -1;
+			ball.shape.c.x = (float)(windowSize.w - ball.shape.r);
+			ball.motion.dx *= -1;
 		}
-		if (ballCenter.y - ballRadius < 0)
+		if (ball.shape.c.y - ball.shape.r < 0)
 		{
-			ballCenter.y = (float)ballRadius;
-			ballMotion.dy *= -1;
+			ball.shape.c.y = (float)ball.shape.r;
+			ball.motion.dy *= -1;
 		}
 
 		// ball out (bottomwall)
-		if (!ballWaiting && ballCenter.y > windowSize.height + ballRadius) 
+		if (!ball.shouldRespawn && ball.shape.c.y > windowSize.h + ball.shape.r) 
 		{
-			ballMotion = { 0, 0 };
-			ballWaiting = true;
-			ballOutTime = clock::now();
+			ball.motion = { 0, 0 };
+			ball.shouldRespawn = true;
+			ball.outTime = std::chrono::steady_clock::now();
 		}
-		if (ballWaiting) 
+		if (ball.shouldRespawn) 
 		{
-			if (clock::now() - ballOutTime >= respawnDelay) 
+			if (std::chrono::steady_clock::now() - ball.outTime >= ball.respawnDelay) 
 			{
-				ballCenter = { paddlePos.x + paddleSize.width / 2, paddlePos.y - ballRadius * 2 };
-				ballMotion = { -ballVelocity, -ballVelocity };
+				ball.shape.c = { paddle.shape.p.x + paddle.shape.s.w / 2, paddle.shape.p.y - ball.shape.r * 2 };
+				ball.motion = { -ball.velocity, -ball.velocity };
 
 				bool allBroken = true;
 				for (Brick& brick : bricks)
@@ -304,17 +170,17 @@ int main(int argc, char** args)
 					}
 				}
 
-				ballWaiting = false;
+				ball.shouldRespawn = false;
 			}
 		}
 
 		// paddle-ball collision detection
-		if ((ballCenter.y + ballRadius >= paddlePos.y) &&
-			(ballCenter.y < paddlePos.y) &&
-			(paddlePos.x - ballRadius <= ballCenter.x) &&
-			(ballCenter.x <= paddlePos.x + paddleSize.width + ballRadius))
+		if ((ball.shape.c.y + ball.shape.r >= paddle.shape.p.y) &&
+			(ball.shape.c.y < paddle.shape.p.y) &&
+			(paddle.shape.p.x - ball.shape.r <= ball.shape.c.x) &&
+			(ball.shape.c.x <= paddle.shape.p.x + paddle.shape.s.w + ball.shape.r))
 		{
-			hitFactor = (ballCenter.x - (paddlePos.x + paddleSize.width / 2.0f)) / (paddleSize.width / 2.0f + ballRadius);
+			hitFactor = (ball.shape.c.x - (paddle.shape.p.x + paddle.shape.s.w / 2.0f)) / (paddle.shape.s.w / 2.0f + ball.shape.r);
 			bounceAngleAcute = bounceAngleBoundary + ((float)M_PI / 2.0f - bounceAngleBoundary) * (1.0f - std::abs(hitFactor));
 
 			if (hitFactor < 0)
@@ -326,32 +192,32 @@ int main(int argc, char** args)
 				bounceAngle = bounceAngleAcute;
 			}
 
-			ballMotion.dx = ballVelocity * std::cos(bounceAngle);
-			ballMotion.dy = ballVelocity * -std::sin(bounceAngle);
+			ball.motion.dx = ball.velocity * std::cos(bounceAngle);
+			ball.motion.dy = ball.velocity * -std::sin(bounceAngle);
 			
-			ballCenter.y = paddlePos.y - ballRadius - 1;
+			ball.shape.c.y = paddle.shape.p.y - ball.shape.r - 1;
 		}
 		
 		// ball-brick collision detection
 		for (Brick& brick : bricks)
 		{
-			if (!brick.broken && IsCircleRectIntersecting(ballCenter, ballRadius, brick.rect))
+			if (!brick.broken && IsCircleRectColliding(ball.shape, brick.shape))
 			{
 				brick.broken = true;
 				
-				switch (GetCircleRectIntersectionEdge(ballCenter, ballRadius, brick.rect))
+				switch (GetCircleRectCollisionEdge(ball.shape, brick.shape))
 				{
 				case CollisionEdge::Top:
-					ballMotion.dy *= -1;
+					ball.motion.dy *= -1;
 					break;
 				case CollisionEdge::Bottom:
-					ballMotion.dy *= -1;
+					ball.motion.dy *= -1;
 					break;
 				case CollisionEdge::Left:
-					ballMotion.dx *= -1;
+					ball.motion.dx *= -1;
 					break;
 				case CollisionEdge::Right:
-					ballMotion.dx *= -1;
+					ball.motion.dx *= -1;
 					break;
 				default:
 					__debugbreak();
@@ -363,25 +229,39 @@ int main(int argc, char** args)
 		}
 
 		// move ball
-		ballCenter.x += ballMotion.dx;
-		ballCenter.y += ballMotion.dy;
+		ball.shape.c.x += ball.motion.dx;
+		ball.shape.c.y += ball.motion.dy;
 
 		SDL_SetRenderDrawColor(renderer, 26, 16, 46, 255);
 		SDL_RenderClear(renderer);
 
-		paddleShape = { (int)paddlePos.x, (int)paddlePos.y, paddleSize.width, paddleSize.height };
+		SDL_Rect paddleRenderTarget = 
+		{ 
+			.x = std::lroundf(paddle.shape.p.x), 
+			.y = std::lroundf(paddle.shape.p.y), 
+			.w = paddle.shape.s.w, 
+			.h = paddle.shape.s.h, 
+		};
+
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-		SDL_RenderFillRect(renderer, &paddleShape);
+		SDL_RenderFillRect(renderer, &paddleRenderTarget);
 
 		SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
-		DrawCircle(renderer, ballCenter, ballRadius);
+		DrawCircle(renderer, ball.shape);
 
 		for (Brick& brick : bricks)
 		{
 			if (!brick.broken)
 			{
+				SDL_Rect brickRenderTarget = 
+				{ 
+					.x = std::lroundf(brick.shape.p.x), 
+					.y = std::lroundf(brick.shape.p.y), 
+					.w = brick.shape.s.w, 
+					.h = brick.shape.s.h 
+				};
 				SDL_SetRenderDrawColor(renderer, brick.color.r, brick.color.g, brick.color.b, 255);
-				SDL_RenderFillRect(renderer, &(brick.rect));
+				SDL_RenderFillRect(renderer, &brickRenderTarget);
 			}
 		}
 
