@@ -1,6 +1,6 @@
 #include "Shape.h"
 
-void DrawCircle(SDL_Renderer* renderer, Circle circle)
+void DrawCircle(SDL_Renderer* renderer, const Circle& circle)
 {
 	const int diameter = circle.r * 2;
 

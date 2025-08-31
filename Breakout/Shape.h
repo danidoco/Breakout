@@ -15,4 +15,4 @@ struct Circle
 	Position c;
 };
 
-void DrawCircle(SDL_Renderer* renderer, Circle circle);
+void DrawCircle(SDL_Renderer* renderer, const Circle& circle);
