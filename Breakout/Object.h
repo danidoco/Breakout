@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <SDL2/SDL.h>
 #include "Property.h"
 #include "Shape.h"
 

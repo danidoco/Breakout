@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -12,6 +11,7 @@
 
 int main(int argc, char** args)
 {
+	// init window
 	const Size windowSize = { 800, 600 };
 	SDL_Window* window = SDL_CreateWindow(
 		"Breakout", 
@@ -24,6 +24,7 @@ int main(int argc, char** args)
 		return 1;
 	}
 
+	// init renderer
 	SDL_Renderer* renderer = SDL_CreateRenderer(
 		window, 
 		-1, 
@@ -34,11 +35,20 @@ int main(int argc, char** args)
 		return 1;
 	}
 
+	// init SDL
+	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+	{
+		std::cout << "Error initializing SDL: " << SDL_GetError() << std::endl;
+		return 1;
+	}
+
+	// paddle
 	Paddle paddle{};
 	paddle.shape.s = { 150, 10 };
 	paddle.shape.p = { (windowSize.w - paddle.shape.s.w) / 2.0f, (float)(windowSize.h - paddle.shape.s.h - 40) };
 	paddle.velocity = 15;
 
+	// ball
 	Ball ball{};
 	ball.shape.r = 10;
 	ball.shape.c = { paddle.shape.p.x + paddle.shape.s.w / 2.0f, paddle.shape.p.y - ball.shape.r * 2 };
@@ -47,13 +57,15 @@ int main(int argc, char** args)
 	ball.shouldRespawn = false;
 	ball.respawnDelay = std::chrono::milliseconds(2000);
 
+	// for paddle-ball hit processing
 	float hitFactor;
 	float bounceAngleAcute;
 	float bounceAngle;
 	float bounceAngleBoundary = (float)M_PI / 18.0f;
 
-	// bricks
-	Color rainbow[10] = {
+	// generate bricks
+	Color rainbow[10] = 
+	{
 		{255, 0, 0},
 		{255, 127, 0},
 		{255, 255, 0},
@@ -82,19 +94,12 @@ int main(int argc, char** args)
 		brick.broken = false;
 	}
 
-	// init SDL
-	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-	{
-		std::cout << "Error initializing SDL: " << SDL_GetError() << std::endl;
-		return 1;
-	}
-
 	// game loop
 	SDL_Event e{};
 	bool running = true;
-
 	while (running)
 	{
+		// process quit event
 		while (SDL_PollEvent(&e))
 		{
 			if (e.type == SDL_QUIT)
@@ -103,6 +108,7 @@ int main(int argc, char** args)
 			}
 		}
 
+		// get keyboard state
 		const unsigned char* keyboardState = SDL_GetKeyboardState(nullptr);
 
 		// paddle movement
@@ -229,9 +235,11 @@ int main(int argc, char** args)
 		ball.shape.c.x += ball.motion.dx;
 		ball.shape.c.y += ball.motion.dy;
 
+		// clear screen
 		SDL_SetRenderDrawColor(renderer, 26, 16, 46, 255);
 		SDL_RenderClear(renderer);
 
+		// draw paddle
 		SDL_Rect paddleRenderTarget = 
 		{ 
 			.x = std::lroundf(paddle.shape.p.x), 
@@ -239,13 +247,14 @@ int main(int argc, char** args)
 			.w = paddle.shape.s.w, 
 			.h = paddle.shape.s.h, 
 		};
-
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 		SDL_RenderFillRect(renderer, &paddleRenderTarget);
 
+		// draw ball
 		SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
 		DrawCircle(renderer, ball.shape);
 
+		// draw bircks
 		for (Brick& brick : bricks)
 		{
 			if (!brick.broken)
@@ -262,13 +271,14 @@ int main(int argc, char** args)
 			}
 		}
 
+		// present
 		SDL_SetRenderDrawColor(renderer, 255, 16, 46, 255);
 		SDL_RenderPresent(renderer);
 	}
 
+	// terminate
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-
 	return 0;
 }
